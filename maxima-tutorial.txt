@@ -5,8 +5,8 @@ MAXIMA is a great and old computer algebra system, with ALGOL syntax and LISP
 semantics. The syntax close to traditional mathematics is user friendly, but 
 painful from the perspective of a lisp user accustomed to the superior REPL.
 There are not describe, inspect, find definitions, find references, trace, 
-macroexpand, et cetera.  And above all, there are not PARENTHESES seamlessly
-to compose with other library and application.
+macroexpand, et cetera, as in SLIME. And above all, there are not PARENTHESES
+seamlessly to compose with other library and application.
 
 How to use MAXIMA lispy? Look at the source, we can find some clues. There is 
 maxima.asd in source tree, then
