@@ -1,0 +1,135 @@
+A way to use MAXIMA lispy
+
+If someone ask what is the use of Common Lisp, a good answer is MAXIMA. 
+MAXIMA is a great and old computer algebra system, with ALGOL syntax and LISP 
+semantics. The syntax close to traditional mathematics is user friendly, but 
+painful from the perspective of a lisp user accustomed to the superior REPL.
+There are not describe, inspect, find definitions, find references, trace, 
+macroexpand, et cetera.  And above all, there are not PARENTHESES seamlessly
+to compose with other library and application.
+
+How to use MAXIMA lispy? Look at the source, we can find some clues. There is 
+maxima.asd in source tree, then
+CL-USER> (asdf:load-system :maxima) ;configure your asdf to find maxima, if 
+				    ;you can not load because of some
+                                    ;compiling errors about type, then
+	                            ;(setf asdf:*compile-file-failure-behaviour* :warn)
+
+The function entering maxima repl is cl-user::run. M-.(slime-edit-definition 
+in GNU EMACS, find-definitions in LEM) the run function, We see the key
+function is MACSYMA-TOP-LEVEL. Following it, we find mread, meval*, displa
+the maxima repl. Then we write a translation function that translates maxima
+form to lisp form:
+
+CL-USER> (in-package :maxima)
+
+MAXIMA> (defun lisp-form (macsyma-string)
+	  (macsyma-read-string (concatenate 'string macsyma-string "$")))
+
+try:
+
+MAXIMA> (lisp-form "diff(sin(x),x)")
+
+(($DIFF) ((%SIN) $X) $X)
+
+MAXIMA> (lisp-form "integrate(cos(x),x)")
+
+(($INTEGRATE) ((%COS) $X) $X)
+
+MAXIMA> (lisp-form "solve(x^2=-1)")
+(($SOLVE) ((MEQUAL) ((MEXPT) $X 2) ((MMINUS) 1)))
+
+MAXIMA> (lisp-form "desolve('diff(f(x),x)=f(x),f(x))")
+(($DESOLVE) ((MEQUAL) ((%DERIVATIVE) (($F) $X) $X) (($F) $X)) (($F) $X))
+
+MAXIMA> (lisp-form "matrix([[1,0],[0,1]])")
+(($MATRIX) ((MLIST) ((MLIST) 1 0) ((MLIST) 0 1)))
+
+...
+
+Some patterns are emerging!
+
+MAXIMA> (meval* '(($DIFF) ((%SIN) $X) $X))
+((%COS SIMP) $X)
+
+MAXIMA> (displa *)
+cos(x)
+NIL
+
+We also can directly do:
+
+MAXIMA> ($diff '((%sin) $x) '$x)
+((%COS SIMP) $X)
+
+But,
+
+MAXIMA> (lisp-form "sin(10d0)")
+((%SIN) 10.0)
+
+MAXIMA> (lisp-form "gamma(10d0)")
+((%GAMMA) 10.0)
+
+Describe $diff, %sin, you will see they have a big property list with many 
+hints.
+
+The results of (meval* '((%sin) 10.0)) and ($sin 10.0) is the same.
+
+Trial and error, the patterns become clearer.
+Still remember LIST and SYMBOL are two most important data structure in LISP?
+
+
+MAXIMA> (loop :for n := 1d0 :then (incf n 0.2d0)
+              :repeat 4
+              :collect (meval* (list '(%gamma) n)))
+(1.0 0.9181687423997607 0.8872638175030753 0.8935153492876903)
+
+Put these data into lisp GUI such as GARNET, CLIM, CLOG, you can get a 
+function plot.
+
+Try further:
+
+MAXIMA> (lisp-form "a:1")
+((MSETQ) $A 1)
+
+MAXIMA> (lisp-form "f(x):=sin(x)")
+((MDEFINE) (($F) $X) ((%SIN) $X))
+
+after meval* them
+
+MAXIMA> $a
+1
+
+MAXIMA> (meval* '(($f) 1.0d0))
+0.8414709848078965
+
+Observe the changes of symbol-plist of $A, $F. (meval* '(($kill) $all)) will 
+unbind them.
+
+Following the instruction of INSTALL.lisp, set some path variable,
+load lisp-utils/defsystem, lisp-utils/make-depends,  we can do:
+
+MAXIMA> ($load "itensor")
+
+MAXIMA> (lisp-form "imetric(g)")
+(($IMETRIC) $G)
+MAXIMA> (meval* *)
+$DONE
+MAXIMA> (lisp-form "ishow(g([],[j,k])*g([],[i,l])*a([i,j],[]))")
+(($ISHOW)
+ ((MTIMES) (($G) ((MLIST)) ((MLIST) $J $K)) (($G) ((MLIST)) ((MLIST) $I $L))
+  (($A) ((MLIST) $I $J) ((MLIST)))))
+MAXIMA> (meval* *)
+                                 i l  j k
+(%t0)                           g    g    a
+                                           i j
+((MTIMES SIMP) (($G SIMP) ((MLIST SIMP)) ((MLIST SIMP) $I $L))
+ (($G SIMP) ((MLIST SIMP)) ((MLIST SIMP) $J $K))
+ (($A SIMP) ((MLIST SIMP) $I $J) ((MLIST SIMP))))
+
+
+More complex things can be done with some efforts.
+
+If someone ask what is the difference of a program with the same function
+and performance written in Common Lisp and other programming languages,
+a good answer is A Playful Game.
+
