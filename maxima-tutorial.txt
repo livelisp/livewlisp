@@ -1,26 +1,27 @@
-A way to use MAXIMA lispy
+                       A Way To Use MAXIMA Lispy
 
-If someone ask what is the use of Common Lisp, a good answer is MAXIMA. 
-MAXIMA is a great and old computer algebra system, with ALGOL syntax and LISP 
-semantics. The syntax close to traditional mathematics is user friendly, but 
+If someone ask what is the use of Common Lisp, a good answer is MAXIMA.
+MAXIMA is a great and old computer algebra system, with ALGOL syntax and LISP
+semantics. The syntax close to traditional mathematics is user friendly, but
 painful from the perspective of a lisp user accustomed to the superior REPL.
 There are not fancy editor extensions: describe, inspect, find definitions,
 find references, trace, macroexpand, et cetera, as in SLIME. And above all,
-there are not PARENTHESES seamlessly to compose with CL itself and other CL
-library and application.
+there are not PARENTHESES seamlessly to compose with the CL itself and other
+CL library and application.
 
 How to use MAXIMA lispy? Look at the source, we can find some clues. There is 
 maxima.asd in source tree, then:
 
-CL-USER> (asdf:load-system :maxima) ;configure your asdf to find maxima, if 
+CL-USER> (asdf:load-system :maxima) ;configure your asdf to find maxima, if
 				    ;you can not load because of some
                                     ;compiling errors about type, then
-	                            ;(setf asdf:*compile-file-failure-behaviour* :warn)
+	                            ;(setf asdf:*compile-file-failure-behaviour*
+                                    ;      :warn)
 
-The function entering maxima repl is cl-user::run. M-.(slime-edit-definition 
-in GNU EMACS, find-definitions in LEM) the run function, We see the key
-function is MACSYMA-TOP-LEVEL. Following it, we find mread, meval*, displa
-the maxima repl. Then we write a translation function that translates maxima
+The function entering maxima repl is CL-USER::RUN. Then M-. RUN (slime-edit
+-definition in GNU EMACS, find-definitions in LEM), we see the key function
+is MACSYMA-TOP-LEVEL. Following it, we find MREAD, MEVAL*, DISPLA the maxima
+repl. Then we write a translation function that translates maxima(macsyma)
 form to lisp form:
 
 CL-USER> (in-package :maxima)
@@ -58,12 +59,22 @@ MAXIMA> (displa *)
 cos(x)
 NIL
 
+MAXIMA> (meval* '(($INTEGRATE) ((%COS) $X) $X))
+((%SIN SIMP) $X)
+
+MAXIMA> (displa *)
+sin(x)
+NIL
+
 We also can directly do:
 
 MAXIMA> ($diff '((%sin) $x) '$x)
 ((%COS SIMP) $X)
 
-But,
+MAXIMA> ($integrate '((%cos) $x) '$x)
+((%SIN SIMP) $X)
+
+$DIFF, $INTEGRATE are functions. But,
 
 MAXIMA> (lisp-form "sin(10d0)")
 ((%SIN) 10.0)
@@ -71,8 +82,15 @@ MAXIMA> (lisp-form "sin(10d0)")
 MAXIMA> (lisp-form "gamma(10d0)")
 ((%GAMMA) 10.0)
 
-Describe $diff, %sin, you will see they have a big property list with many 
-hints.
+%SIN, %GAMMA are only symbols. C-c C-d d %SIN (slime-describe-symbol in GNU
+EMACS, lisp-describe-symbol in LEM), you will see that it has a big and
+beautiful property list with many hints. (If you can not see the complete
+plist, that is not the fault of the Editor or SWANK, it is the behavior of
+SBCL's (defmethod describe-object ((symbol symbol) stream) ...) in src/code/
+describe.lisp. Change the (prin1-to-line key :columns 2 :reserve 5) to key,
+and (prin1-to-line value :columns 2 :reserve 5) to value. Then C-c C-c the
+method (slime-compile-defun in GNU EMACS, lisp-compile-defun in LEM). Don't be
+fearful to change the SBCL itself. C'est la vie.
 
 The results of (meval* '((%sin) 10.0)) and ($sin 10.0) is the same.
 
@@ -135,4 +153,3 @@ More complex things can be done with some efforts.
 If someone ask what is the difference of a program with the same function
 and performance written in Common Lisp and other programming languages,
 a good answer is A Playful Game.
-
