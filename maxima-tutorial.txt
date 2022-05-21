@@ -32,11 +32,9 @@ MAXIMA> (defun lisp-form (macsyma-string)
 try:
 
 MAXIMA> (lisp-form "diff(sin(x),x)")
-
 (($DIFF) ((%SIN) $X) $X)
 
 MAXIMA> (lisp-form "integrate(cos(x),x)")
-
 (($INTEGRATE) ((%COS) $X) $X)
 
 MAXIMA> (lisp-form "solve(x^2=-1)")
@@ -45,8 +43,11 @@ MAXIMA> (lisp-form "solve(x^2=-1)")
 MAXIMA> (lisp-form "desolve('diff(f(x),x)=f(x),f(x))")
 (($DESOLVE) ((MEQUAL) ((%DERIVATIVE) (($F) $X) $X) (($F) $X)) (($F) $X))
 
-MAXIMA> (lisp-form "matrix([[1,0],[0,1]])")
-(($MATRIX) ((MLIST) ((MLIST) 1 0) ((MLIST) 0 1)))
+MAXIMA> (lisp-form "matrix([1,0],[0,1])")
+(($MATRIX) ((MLIST) 1 0) ((MLIST) 0 1))
+
+MAXIMA> (lisp-form "determinant(matrix([1,0],[0,1]))")
+(($DETERMINANT) (($MATRIX) ((MLIST) 1 0) ((MLIST) 0 1)))
 
 ...
 
@@ -94,8 +95,21 @@ fearful to change the SBCL itself. C'est la vie.
 
 The results of (meval* '((%sin) 10.0)) and ($sin 10.0) is the same.
 
-Trial and error, the patterns become clearer.
-Still remember LIST and SYMBOL are two most important data structure in LISP?
+Also, more simple:
+
+MAXIMA> (lisp-form "x+y")
+((MPLUS) $X $Y)
+MAXIMA> (lisp-form "x-y")
+((MPLUS) $X ((MMINUS) $Y))
+MAXIMA> (lisp-form "x*y")
+((MTIMES) $X $Y)
+MAXIMA> (lisp-form "x/y")
+((MQUOTIENT) $X $Y)
+MAXIMA> (lisp-form "x^y")
+((MEXPT) $X $Y)
+
+Trial and error, the patterns become clearer, noticed the $, M, %?
+Still remember LIST and SYMBOL are two most important data structures in LISP?
 
 
 MAXIMA> (loop :for n := 1d0 :then (incf n 0.2d0)
