@@ -1,6 +1,6 @@
                        A Way To Use MAXIMA Lispy
 
-If someone ask what is the use of Common Lisp, a good answer is MAXIMA.
+If someone asks what is the use of Common Lisp, a good answer is MAXIMA.
 MAXIMA is a great and old computer algebra system, with ALGOL syntax and LISP
 semantics. The syntax close to traditional mathematics is user friendly, but
 painful from the perspective of a lisp user accustomed to the superior REPL.
@@ -17,6 +17,9 @@ CL-USER> (asdf:load-system :maxima) ;configure your asdf to find maxima, if
                                     ;compiling errors about type, then
 	                            ;(setf asdf:*compile-file-failure-behaviour*
                                     ;      :warn)
+                                    :note: as commit 87c917c3 (Oct 16 2022,
+                                    ; Robert Smith), this problem seems to
+                                    ;be solved.
 
 The function entering maxima repl is CL-USER::RUN. Then M-. RUN (slime-edit
 -definition in GNU EMACS, find-definitions in LEM), we see the key function
@@ -37,8 +40,14 @@ MAXIMA> (lisp-form "diff(sin(x),x)")
 MAXIMA> (lisp-form "integrate(cos(x),x)")
 (($INTEGRATE) ((%COS) $X) $X)
 
+MAXIMA> (lisp-form "taylor(asin(x),x,0,6)")
+(($TAYLOR) ((%ASIN) $X) $X 0 6)
+
 MAXIMA> (lisp-form "solve(x^2=-1)")
 (($SOLVE) ((MEQUAL) ((MEXPT) $X 2) ((MMINUS) 1)))
+
+MAXIMA> (lisp-form "limit(sin(x)/x,x,0)")
+(($LIMIT) ((MQUOTIENT) ((%SIN) $X) $X) $X 0)
 
 MAXIMA> (lisp-form "desolve('diff(f(x),x)=f(x),f(x))")
 (($DESOLVE) ((MEQUAL) ((%DERIVATIVE) (($F) $X) $X) (($F) $X)) (($F) $X))
@@ -48,6 +57,9 @@ MAXIMA> (lisp-form "matrix([1,0],[0,1])")
 
 MAXIMA> (lisp-form "determinant(matrix([1,0],[0,1]))")
 (($DETERMINANT) (($MATRIX) ((MLIST) 1 0) ((MLIST) 0 1)))
+
+MAXIMA> (lisp-form "factor(x^3+1)")
+(($FACTOR) ((MPLUS) ((MEXPT) $X 3) 1))
 
 ...
 
@@ -75,7 +87,7 @@ MAXIMA> ($diff '((%sin) $x) '$x)
 MAXIMA> ($integrate '((%cos) $x) '$x)
 ((%SIN SIMP) $X)
 
-$DIFF, $INTEGRATE are functions. But,
+$DIFF, $INTEGRATE are functions. But:
 
 MAXIMA> (lisp-form "sin(10d0)")
 ((%SIN) 10.0)
@@ -107,15 +119,19 @@ MAXIMA> (lisp-form "x/y")
 ((MQUOTIENT) $X $Y)
 MAXIMA> (lisp-form "x^y")
 ((MEXPT) $X $Y)
+MAXIMA> (lisp-form "x**y")
+((MEXPT) $X $Y)
 
 Trial and error, the patterns become clearer, noticed the $, M, %?
 Still remember LIST and SYMBOL are two most important data structures in LISP?
 
 
-MAXIMA> (loop :for n := 1d0 :then (incf n 0.2d0)
-              :repeat 4
-              :collect (meval* (list '(%gamma) n)))
-(1.0 0.9181687423997607 0.8872638175030753 0.8935153492876903)
+MAXIMA> (loop :for x := 0.1d0 :then (incf x 0.1d0)
+              :repeat 44
+              :collect x
+              :collect (meval* (list '(%gamma) x)))
+(0.1d0 9.513507698668723d0 0.2d0 4.590843711998804d0 0.30000000000000004d0
+...)
 
 Put these data into lisp GUI such as GARNET, CLIM, CLOG, you can get a 
 function plot.
@@ -128,7 +144,11 @@ MAXIMA> (lisp-form "a:1")
 MAXIMA> (lisp-form "f(x):=sin(x)")
 ((MDEFINE) (($F) $X) ((%SIN) $X))
 
-after meval* them
+MAXIMA> (lisp-form "fact(n):=if n<=1 then 1 else n*fact(n-1)")
+((MDEFINE) (($FACT) $N)
+ ((MCOND) ((MLEQP) $N 1) 1 T ((MTIMES) $N (($FACT) ((MPLUS) $N ((MMINUS) 1))))))
+
+After meval* them, then:
 
 MAXIMA> $a
 1
@@ -136,8 +156,11 @@ MAXIMA> $a
 MAXIMA> (meval* '(($f) 1.0d0))
 0.8414709848078965
 
-Observe the changes of symbol-plist of $A, $F. (meval* '(($kill) $all)) will 
-unbind them.
+MAXIMA> (meval* '(($fact) 10))
+3628800
+
+Observe the changes of symbol-plist of $A, $F, $FACT. (meval* '(($kill) $all))
+will unbind them.
 
 Following the instruction of INSTALL.lisp, set some path variables
 (src/autoconf-variables.lisp), load lisp-utils/defsystem, lisp-utils/make-depends,
@@ -164,6 +187,6 @@ MAXIMA> (meval* *)
 
 More complex things can be done with some efforts.
 
-If someone ask what is the difference of a program with the same function
+If someone asks what is the difference of a program with the same function
 and performance written in Common Lisp and other programming languages,
 a good answer is A Playful Game.
