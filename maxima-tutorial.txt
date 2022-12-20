@@ -24,8 +24,8 @@ CL-USER> (asdf:load-system :maxima) ;configure your asdf to find maxima, if
 The function entering maxima repl is CL-USER::RUN. Then M-. RUN (slime-edit
 -definition in GNU EMACS, find-definitions in LEM), we see the key function
 is MACSYMA-TOP-LEVEL. Following it, we find MREAD, MEVAL*, DISPLA the maxima
-repl. Then we write a translation function that translates maxima(macsyma)
-form to lisp form:
+repl. Then we write a translation function that translates MAXIMA/MACSYMA
+form to LISP form:
 
 CL-USER> (in-package :maxima)
 
@@ -105,7 +105,7 @@ and (prin1-to-line value :columns 2 :reserve 5) to value. Then C-c C-c the
 method (slime-compile-defun in GNU EMACS, lisp-compile-defun in LEM). Don't be
 fearful to change the SBCL itself. C'est la vie.
 
-The results of (meval* '((%sin) 10.0)) and ($sin 10.0) is the same.
+The results of (meval* '((%sin) 10.0)) and ($sin 10.0) are the same.
 
 Also, more simple:
 
@@ -184,6 +184,87 @@ MAXIMA> (meval* *)
  (($G SIMP) ((MLIST SIMP)) ((MLIST SIMP) $J $K))
  (($A SIMP) ((MLIST SIMP) $I $J) ((MLIST SIMP))))
 
+Another example:
+
+MAXIMA> ($load "lapack")
+
+Believe it or not, you got a LAPACK completely in LISP. Throw away FFI.
+Try DGEEV subroutine:
+
+MAXIMA> (defun dgeev (array) ;array is one dimensional, column-major ordered.
+          (let* ((n (isqrt (length array)))
+                 (a array)
+                 (wr (make-array n :element-type 'double-float))
+                 (wi (make-array n :element-type 'double-float))
+                 (vl (make-array (* n n) :element-type 'double-float))
+                 (vr (make-array (* n n) :element-type 'double-float)))
+            (lapack:dgeev "V"
+                          "V"
+                          n a n wr wi vl n vr n wr -1 0)
+            (let* ((lwork (truncate (aref wr 0)))
+                   (work (make-array lwork :element-type 'double-float)))
+              (lapack:dgeev "V"
+                            "V"
+                            n a n wr wi vl n vr n work lwork 0)
+              (alexandria:plist-alist (list :wr wr :wi wi :vl vl :vr vr)))))        
+DGEEV
+
+MAXIMA> (defparameter *ckm-matrix* ;Cabibbo–Kobayashi–Maskawa matrix
+          '(($matrix)
+            ((mlist) 0.9737 0.2245 0.00382)
+            ((mlist) 0.221 0.987 0.041)
+            ((mlist) 0.008 0.0388 1.013)))
+*CKM-MATRIX*
+
+MAXIMA> (lapack-lispify-matrix *ckm-matrix* 3 3)
+#(0.9737 0.221 0.008 0.2245 0.987 0.0388 0.00382 0.041 1.013)
+
+MAXIMA> (dgeev *)
+((:WR . #(0.7553580041276908 1.208707650167535 1.0096343457047745))
+ (:WI . #(0.0 0.0 0.0))
+ (:VL
+  . #(0.999782808989227 0.0061346732680669525 0.019917345041569934 0.0
+      0.9999861392655204 0.005265099888812207 0.0 0.0 1.0))
+ (:VR
+  . #(1.0 0.0 0.0 -0.0061358904446058475 0.9999811752470401 0.0 -0.019885156381280553
+      -0.005264058824451628 0.9997884127356071)))
+
+MAXIMA> (defparameter *ckm* *)
+;omit value
+
+From $dgeev (M-. $dgeev) extract functions make-eigval and make-eigvec.
+Transform *ckm* LISP value to MACSYMA LISP form:
+
+MAXIMA> (make-eigval (alexandria:assoc-value *ckm* :wr)
+                     (alexandria:assoc-value *ckm* :wi))
+((MLIST) 0.7553580041276908 1.208707650167535 1.0096343457047745)
+
+MAXIMA> (make-eigvec 3
+                     (alexandria:assoc-value *ckm* :vr)
+                     (alexandria:assoc-value *ckm* :wi))
+(($MATRIX) ((MLIST) 0.7137187046810191 -0.6822653742636046 -0.18682163050743134)
+ ((MLIST) -0.6955467378513901 -0.711324435697427 -0.04660059273149587)
+ ((MLIST) 0.08258538643572384 -0.1689127178772533 0.9812879613709822))
+
+MAXIMA> (defparameter *ckm-eigval* **) ;eigenvalues
+;omit value
+
+MAXIMA> (defparameter *ckm-eigvec* **) ;eigenvectors
+;omit value
+
+MAXIMA> (meval* (list '(mnctimes) ;*ckm-matrix* times first eigenvector
+                      *ckm-matrix*
+                      ($col *ckm-eigvec* 1)))
+(($MATRIX SIMP) ((MLIST SIMP) 0.5391131362764556) ((MLIST SIMP) -0.5253867956809521)
+ ((MLIST SIMP) 0.06238153266820247))
+
+MAXIMA> (meval* (list '(mtimes) ;first eigenvalue times first eigenvector
+                      ($first *ckm-eigval*)
+                      ($col *ckm-eigvec* 1)))
+(($MATRIX SIMP) ((MLIST SIMP) 0.5391131362764553) ((MLIST SIMP) -0.5253867956809523)
+ ((MLIST SIMP) 0.062381532668202434))
+
+These two matrices are equal approximated.
 
 More complex things can be done with some efforts.
 
