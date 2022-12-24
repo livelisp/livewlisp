@@ -121,6 +121,10 @@ MAXIMA> (lisp-form "x^y")
 ((MEXPT) $X $Y)
 MAXIMA> (lisp-form "x**y")
 ((MEXPT) $X $Y)
+MAXIMA> (lisp-form "x.y")
+((MNCTIMES) $X $Y)
+MAXIMA> (lisp-form "x^^y")
+((MNCEXPT) $X $Y)
 
 Trial and error, the patterns become clearer, noticed the $, M, %?
 Still remember LIST and SYMBOL are two most important data structures in LISP?
@@ -148,6 +152,10 @@ MAXIMA> (lisp-form "fact(n):=if n<=1 then 1 else n*fact(n-1)")
 ((MDEFINE) (($FACT) $N)
  ((MCOND) ((MLEQP) $N 1) 1 T ((MTIMES) $N (($FACT) ((MPLUS) $N ((MMINUS) 1))))))
 
+MAXIMA> (lisp-form "when(test,body)::= buildq([test,body],if test then (body))")
+((MDEFMACRO) (($WHEN) $TEST $BODY)
+ (($BUILDQ) ((MLIST) $TEST $BODY) ((MCOND) $TEST $BODY T $FALSE)))
+
 After meval* them, then:
 
 MAXIMA> $a
@@ -159,8 +167,18 @@ MAXIMA> (meval* '(($f) 1.0d0))
 MAXIMA> (meval* '(($fact) 10))
 3628800
 
-Observe the changes of symbol-plist of $A, $F, $FACT. (meval* '(($kill) $all))
-will unbind them.
+MAXIMA> (lisp-form "macroexpand(when(display2d=true, print(\"displa2d is true\")))")
+(($MACROEXPAND) (($WHEN) ((MEQUAL) $DISPLAY2D T) (($PRINT) "displa2d is true")))
+
+MAXIMA> (meval* *)
+((MCOND SIMP) ((MEQUAL SIMP) $DISPLAY2D T) (($PRINT SIMP) "displa2d is true") T $FALSE)
+
+MAXIMA> (meval* *)
+displa2d is true 
+"displa2d is true"
+
+Observe the changes of symbol-plist of $F, $FACT, $WHEN. (meval* '(($kill) $all))
+will remove these new properties, and unbind $a.
 
 Following the instruction of INSTALL.lisp, set some path variables
 (src/autoconf-variables.lisp), load lisp-utils/defsystem, lisp-utils/make-depends,
@@ -188,7 +206,7 @@ Another example:
 
 MAXIMA> ($load "lapack")
 
-Believe it or not, you got a LAPACK completely in LISP. Throw away FFI.
+Believe it or not, you got a LAPACK completely written in LISP. Throw away FFI.
 Try DGEEV subroutine:
 
 MAXIMA> (defun dgeev (array) ;array is one dimensional, column-major ordered.
@@ -210,7 +228,7 @@ MAXIMA> (defun dgeev (array) ;array is one dimensional, column-major ordered.
 DGEEV
 
 MAXIMA> (defparameter *ckm-matrix* ;Cabibbo–Kobayashi–Maskawa matrix
-          '(($matrix)
+          '(($matrix) ;matrix is row-major ordered
             ((mlist) 0.9737 0.2245 0.00382)
             ((mlist) 0.221 0.987 0.041)
             ((mlist) 0.008 0.0388 1.013)))
