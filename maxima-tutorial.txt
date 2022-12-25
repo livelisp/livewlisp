@@ -152,7 +152,7 @@ MAXIMA> (lisp-form "fact(n):=if n<=1 then 1 else n*fact(n-1)")
 ((MDEFINE) (($FACT) $N)
  ((MCOND) ((MLEQP) $N 1) 1 T ((MTIMES) $N (($FACT) ((MPLUS) $N ((MMINUS) 1))))))
 
-MAXIMA> (lisp-form "when(test,body)::= buildq([test,body],if test then (body))")
+MAXIMA> (lisp-form "when(test,body)::= buildq([test,body],if test then body)")
 ((MDEFMACRO) (($WHEN) $TEST $BODY)
  (($BUILDQ) ((MLIST) $TEST $BODY) ((MCOND) $TEST $BODY T $FALSE)))
 
@@ -167,15 +167,18 @@ MAXIMA> (meval* '(($f) 1.0d0))
 MAXIMA> (meval* '(($fact) 10))
 3628800
 
-MAXIMA> (lisp-form "macroexpand(when(display2d=true, print(\"displa2d is true\")))")
-(($MACROEXPAND) (($WHEN) ((MEQUAL) $DISPLAY2D T) (($PRINT) "displa2d is true")))
+MAXIMA> (lisp-form "macroexpand(when(display2d=true, disp(taylor(f(x),x,0,5))))") 
+(($MACROEXPAND) (($WHEN) ((MEQUAL) $DISPLAY2D T) (($DISP) (($TAYLOR) (($F) $X) $X 0 5))))
 
 MAXIMA> (meval* *)
-((MCOND SIMP) ((MEQUAL SIMP) $DISPLAY2D T) (($PRINT SIMP) "displa2d is true") T $FALSE)
+((MCOND SIMP) ((MEQUAL SIMP) $DISPLAY2D T)
+ (($DISP SIMP) (($TAYLOR SIMP) (($F SIMP) $X) $X 0 5)) T $FALSE)
 
 MAXIMA> (meval* *)
-displa2d is true 
-"displa2d is true"
+                                  3    5
+                                 x    x
+                             x - -- + --- + . . .
+                                 6    120
 
 Observe the changes of symbol-plist of $F, $FACT, $WHEN. (meval* '(($kill) $all))
 will remove these new properties, and unbind $a.
