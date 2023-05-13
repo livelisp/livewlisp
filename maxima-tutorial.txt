@@ -20,6 +20,17 @@ CL-USER> (asdf:load-system :maxima) ;configure your asdf to find maxima, if
                                     :note: as commit 87c917c3 (Oct 16 2022,
                                     ; Robert Smith), this problem seems to
                                     ;be solved.
+                                    ;note: still need to set that global variable,
+                                    :unless all type conflicts are fixed.
+
+(note: as commit 415602 2023-01-21, some maxima global variables are putted
+in initialize-runtime-globals. Because we don't run CL-USER::RUN, who calls
+INITIALIZE-RUNTIME-GLOBALS, so you also need to eval region from
+(setf %e-val (mget '$%e '$numer)) to (setf (gethash '$pointbound
+*variable-initial-values*) *alpha) at initialize-runtime-globals in
+init-cl.lisp (SLIME-EVAL-REGION in GNU EMACS, LISP-EVAL-REGION in LEM).
+For convenience, these forms and other useful variables or functions
+can be putted in one init file.)
 
 The function entering maxima repl is CL-USER::RUN. Then M-. RUN (slime-edit
 -definition in GNU EMACS, find-definitions in LEM), we see the key function
@@ -289,6 +300,53 @@ These two matrices are equal approximated.
 
 More complex things can be done with some efforts.
 
-If someone asks what is the difference of a program with the same function
+Of course, we also can translate LISP form back to MAXIMA/MACSYMA form:
+
+MAXIMA> (defun macsyma-form (lisp-form)
+          (let (($display2d nil))
+            (string-right-trim
+             '(#\Newline)
+             (with-output-to-string (out)
+               (displaf lisp-form out)))))
+
+MAXIMA> (lisp-form "diff(asin(x))")
+(($DIFF) ((%ASIN) $X))
+
+MAXIMA> (macsyma-form* *)
+"diff(asin(x))"
+
+
+;;;Free Fall
+MAXIMA> (lisp-form "eq:-m*g=m*'diff(y(t),t,2)")
+((MSETQ) $EQ
+ ((MEQUAL) ((MTIMES) ((MMINUS) $M) $G) ((MTIMES) $M ((%DERIVATIVE) (($Y) $T) $T 2))))
+
+MAXIMA> (meval* *)
+((MEQUAL SIMP) ((MTIMES SIMP) -1 $G $M)
+ ((MTIMES SIMP) $M ((%DERIVATIVE SIMP) (($Y SIMP) $T) $T 2)))
+
+MAXIMA> (lisp-form "desolve(eq,y(t))")
+(($DESOLVE) $EQ (($Y) $T))
+
+MAXIMA> (meval* *)
+((MEQUAL SIMP) (($Y SIMP) $T)
+ ((MPLUS SIMP) (($Y SIMP) 0) ((MTIMES SIMP) ((RAT SIMP) -1 2) $G ((MEXPT SIMP) $T 2))
+  ((MTIMES SIMP) $T
+   ((%AT SIMP) ((%DERIVATIVE SIMP) (($Y SIMP) $T) $T 1) ((MEQUAL SIMP) $T 0)))))
+
+MAXIMA> (macsyma-form* *)
+"y(t) = t*('at('diff(y(t),t,1),t = 0))-(g*t^2)/2+y(0)"
+
+MAXIMA> (displa **)
+                   !            2
+          d        !         g t
+y(t) = t (-- (y(t))!     ) - ---- + y(0)
+          dt       !          2
+                   !t = 0
+
+NIL
+
+
+If someone asks what is the difference between two programs with the same function
 and performance written in Common Lisp and other programming languages,
 a good answer is A Playful Game.
