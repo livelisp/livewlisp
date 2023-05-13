@@ -312,7 +312,7 @@ MAXIMA> (defun macsyma-form (lisp-form)
 MAXIMA> (lisp-form "diff(asin(x))")
 (($DIFF) ((%ASIN) $X))
 
-MAXIMA> (macsyma-form* *)
+MAXIMA> (macsyma-form *)
 "diff(asin(x))"
 
 
@@ -334,7 +334,7 @@ MAXIMA> (meval* *)
   ((MTIMES SIMP) $T
    ((%AT SIMP) ((%DERIVATIVE SIMP) (($Y SIMP) $T) $T 1) ((MEQUAL SIMP) $T 0)))))
 
-MAXIMA> (macsyma-form* *)
+MAXIMA> (macsyma-form *)
 "y(t) = t*('at('diff(y(t),t,1),t = 0))-(g*t^2)/2+y(0)"
 
 MAXIMA> (displa **)
