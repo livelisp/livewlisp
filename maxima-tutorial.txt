@@ -194,6 +194,13 @@ MAXIMA> (meval* *)
 Observe the changes of symbol-plist of $F, $FACT, $WHEN. (meval* '(($kill) $all))
 will remove these new properties, and unbind $a.
 
+(note: if current package is not MAXIMA, you have to prefix many (if not all)
+symbols with MAXIMA, such as:
+(maxima::$integrate '((maxima::%cos) maxima::$x) 'maxima::$x)
+or use SBCL's extended package prefix:
+maxima::($integrate '((%cos) $x) '$x)
+)
+
 Following the instruction of INSTALL.lisp, set some path variables
 (src/autoconf-variables.lisp), load lisp-utils/defsystem, lisp-utils/make-depends,
 we can do:
